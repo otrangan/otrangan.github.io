@@ -60,7 +60,6 @@ ul li {
 	user-select: none;
 }
 </style>
-<script src="p5.min.js"></script>
 <script>
 
 //class representing the coords used for the polygon
@@ -79,7 +78,7 @@ Point.prototype.toString = function() {
 var coords = [];
 var savedCoords = [];
 var lightings = []; //List of the lights
-var nextLightToShow = -1;
+var nextLightToShow = -2;
 var visibilitiesComputed = false;
 var visibilityArea = [];
 var triangles = [];
@@ -145,7 +144,7 @@ function euclideanSqDist(p, q) {
 }
 
 function closestVertex(p, points) {
-  console.log('p', p)
+  // console.log('p', p)
   let c = 0,
     d = euclideanSqDist(p, points[0]);
   for (let i = 1; i < points.length; i++) {
@@ -436,19 +435,19 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
 
 
 function show_visibility(){
-	console.log('show_visibility', nextLightToShow);
+	// console.log('show_visibility', nextLightToShow);
 	if (nextLightToShow === lightings.length){
 		visibilitiesComputed = true;
 		draw();
 		nextLightToShow = 0;
 		return;
 	}
-	if (nextLightToShow === -1){
+	if (nextLightToShow === -2){
 		return;
 	}
 	if (visibilitiesComputed === true){
-		nextLightToShow = (nextLightToShow + 1) % (lightings.length + 1);
 		draw()
+		nextLightToShow = (nextLightToShow + 1) % (lightings.length + 1);
 		return;
 	}
 	light_idx = closestVertex(lightings[nextLightToShow], savedCoords);
@@ -459,7 +458,7 @@ function show_visibility(){
 	draw()
 	
 	nextLightToShow += 1
-	console.log(savedCoords)
+	// console.log(savedCoords)
 }
 function fisk(){
 	//Find the floodlights using Fisk's method
@@ -647,7 +646,7 @@ function reset() {
 	coords = [];
 	savedCoords = [];
 	lightings = [];
-	nextLightToShow = -1;
+	nextLightToShow = -2;
 	visibilitiesComputed = false;
 	visibilityArea = [];
 	triangles = [];
