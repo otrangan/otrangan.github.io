@@ -736,6 +736,7 @@ list.addEventListener('click', function(ev) {
     var floodLights = floodLights.split(" ");
     for( i in vertices){
     	coords.push(new Point(parseInt(vertices[i].split(",")[0]),parseInt(vertices[i].split(",")[1])));
+    	savedCoords.push(new Point(parseInt(vertices[i].split(",")[0]),parseInt(vertices[i].split(",")[1])));
     }
     for( j in floodLights){
     	lightings.push(new Point(parseInt(floodLights[j].split(",")[0]),parseInt(floodLights[j].split(",")[1])));
