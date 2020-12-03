@@ -1,0 +1,786 @@
+<DOCTYPE html>
+<meta charset="UTF-8">
+<html>
+<head>
+<title>Vertex pi-floodlight applet</title>
+</head>
+
+<body onresize="resize()" onload="resize()">
+<div class="show">
+<canvas id="myCanvas" style="border:1px solid #000000;" onclick="addCoords(event)">Your browser doesn't support canvas</canvas>
+
+<p>Vertices | Floodlights</p>
+<ul id="myUL"></ul>
+
+</div>
+
+<div class="buttons">
+<!--Press to start the calculation after creating the polygon-->
+<button onclick="calculate()">Calculate</button>
+<!--Press to show visibilities of all lights-->
+<button onclick="show_visibility()">Light up</button>
+<!--Press to delete the selected polygon-->
+<button onclick="reset()">Reset</button>
+<a href = "index.html">Report</a>
+</div>
+<style>
+ul {
+  margin: 0;
+  padding: 0;
+  float:right;
+}
+
+p {
+	text-align:left;
+	font-size: 18px;
+	float:right;
+	margin:0;
+}
+
+ul li:hover {
+  background: #ddd;
+}
+
+ul li {
+	width: 90px; 
+	text-align:left;
+	cursor: pointer;
+	position: relative;
+	padding: 12px 8px 12px 80px;
+	list-style-type: none;
+	background: #eee;
+	font-size: 18px;
+	margin:0;
+	top:-600px;
+	transition: 0.2s;
+
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+</style>
+<script src="p5.min.js"></script>
+<script>
+
+//class representing the coords used for the polygon
+function Point(x, y) {
+	this.x = x;
+	this.y = y;
+}
+function subPoints(a, b){
+    return new Point(a.x - b.x, a.y - b.y);
+}
+
+Point.prototype.toString = function() {
+	return this.x+", "+this.y;
+}
+
+var coords = [];
+var savedCoords = [];
+var lightings = []; //List of the lights
+var nextLightToShow = -1;
+var visibilitiesComputed = false;
+var visibilityArea = [];
+var triangles = [];
+var removed = [];
+var colours = [[],[],[]];
+
+function resize(){
+	//Adjusts the size of the elements when the size of the window changes
+	var c = document.getElementById("myCanvas");
+	var ctx = c.getContext("2d");
+	ctx.canvas.width  = window.innerWidth-200;
+	ctx.canvas.height = window.innerHeight-300;
+	draw();
+	document.getElementById("myUL").innerHTML = "";
+	for ( var i = 0, len = localStorage.length; i < len; ++i ) {
+		var li = document.createElement("li");
+		var inputValue = localStorage.key(i);
+		var t = document.createTextNode(inputValue);
+		li.appendChild(t);
+		document.getElementById("myUL").appendChild(li);
+	}
+}
+
+function calculate() {
+	if(coords.length > 2){
+		//Tests if the polygon is simple
+		simple = true;
+		if (coords.length > 3) {
+			for (var i = 3; i < coords.length; i++) {
+				for (var j = 0; j <= i - 3; j++) {
+					if (intersects(coords[j].x, coords[j].y,coords[j + 1].x, coords[j + 1].y,
+									coords[i - 1].x, coords[i - 1].y,coords[i].x, coords[i].y) ) {
+						simple = false;
+						break;
+					}
+				}
+			}
+			if (simple) {
+				for (j = 1; j < coords.length - 2; j++) {
+					if (intersects(coords[j].x, coords[j].y,coords[j + 1].x, coords[j + 1].y,
+									coords[0].x, coords[0].y,coords[coords.length - 1].x, coords[coords.length - 1].y)) {
+						simple = false;
+						break;
+					}
+				}
+			}
+		}
+		if(simple){			
+			//Add code here
+			draw();
+			fisk();
+			draw();
+			nextLightToShow = 0;
+		}else {
+			//if the polygon is not simple we can't calculate
+			console.log("Polygon is not simple");
+		}
+	}
+}
+
+function euclideanSqDist(p, q) {
+  return (p.x - q.x) ** 2 + (p.y - q.y) ** 2;
+}
+
+function closestVertex(p, points) {
+  console.log('p', p)
+  let c = 0,
+    d = euclideanSqDist(p, points[0]);
+  for (let i = 1; i < points.length; i++) {
+    new_d = euclideanSqDist(p, points[i]);
+    if (new_d < d) {
+      d = new_d;
+      c = i;
+    }
+  }
+  return c;
+}
+
+function crossProduct(u, v) {
+  return u.x * v.y - v.x * u.y;
+}
+
+function orDet(dots) {
+  let c = crossProduct(subPoints(dots[1],dots[0]), subPoints(dots[2],dots[0]));
+  if (c === 0) {
+    return 0;
+  }
+  return c < 0 ? -1 : 1;
+}
+
+function isIntersection(e1, e2) {
+  let o1 = orDet([e1[0], e1[1], e2[0]]);
+  let o2 = orDet([e1[0], e1[1], e2[1]]);
+  if (o1 === o2) {
+    return false;
+  }
+  if (o1 * o2 === 0) {
+    return false;
+  }
+  o1 = orDet([e2[0], e2[1], e1[0]]);
+  o2 = orDet([e2[0], e2[1], e1[1]]);
+  if (o1 === o2) {
+    return false;
+  }
+  if (o1 * o2 === 0) {
+    return false;
+  }
+  return true;
+}
+
+function isPointVisible(c, points, x) {
+  let hidingEdges = [];
+  let outsideRange = false;
+  let p = (c - 1 + points.length) % points.length;
+  let or1 = orDet([points[c], points[p], points[x]]) + 999;
+
+  let n = (c + 1) % points.length;
+  let or2 = orDet([points[c], points[n], points[x]]);
+  let or3 = orDet([points[c], points[p], points[n]]) + 999;
+  if (or1 === -1 || (or2 === 1 && or3 === 1)) {
+    outsideRange = true;
+  }
+
+  let e1 = [points[c], points[x]];
+  for (let j = 0; j < points.length; j++) {
+    let k = (j + 1) % points.length;
+    if (j === c || j === x || k === c || k === x) {
+      continue;
+    }
+    let e2 = [points[j], points[k]];
+    let inter = isIntersection(e1, e2);
+    if (inter === true) {
+      hidingEdges.push(j);
+    }
+  }
+  return [hidingEdges, outsideRange];
+}
+
+function pointVisibility(c, points) {
+  let visibleVertices = [];
+  let hid = [];
+  for (let j = 0; j < points.length; j++) {
+    if (j !== c) {
+      hidings = isPointVisible(c, points, j);
+      he = hidings[0];
+      or = hidings[1];
+      hid.push(hidings);
+      if (he.length !== 0 || or === true) {
+        continue;
+      }
+    } else {
+      hid.push([[], false]);
+    }
+    visibleVertices.push(j);
+  }
+  return [visibleVertices, hid];
+}
+
+function sortVisibleVertices(c, points) {
+  vv = [];
+  for (let i = 0; i < points.length; i++) {
+    vv.push(i);
+  }
+  leftEdges = [];
+  rightEdges = [];
+  for (let j = 0; j < vv.length; j++) {
+    let v = vv[j];
+    let p = points[(v - 1 + points.length) % points.length];
+    let n = points[(v + 1) % points.length];
+    let or1 = orDet([points[c], points[v], p]);
+    let or2 = orDet([points[c], points[v], n]);
+    if (
+      Math.min(or1, or2) === -1 &&
+      Math.max(or1, or2) <= 0 &&
+      c !== (v - 1 + points.length) % points.length
+    ) {
+      leftEdges.push(v);
+    }
+    if (
+      Math.min(or1, or2) >= 0 &&
+      Math.max(or1, or2) === 1 &&
+      c !== (v + 1) % points.length
+    ) {
+      rightEdges.push(v);
+    }
+  }
+  // console.log("left", leftEdges);
+  // console.log("right", rightEdges);
+  return [leftEdges, rightEdges];
+}
+
+function findIntersection(dots) {
+  // console.log("dots", dots);
+  p1 = dots[0];
+  p2 = dots[1];
+  p3 = dots[2];
+  p4 = dots[3];
+
+  a1 = (p1.y - p2.y) / (p1.x - p2.x);
+  a2 = (p3.y - p4.y) / (p3.x - p4.x);
+  b1 = p1.y - a1 * p1.x;
+  b2 = p3.y - a2 * p3.x;
+
+  if (p1.x - p2.x === 0) {
+    return new Point(p1.x, a2 * p1.x + b2);
+  }
+  if (p3.x - p4.x === 0) {
+    return new Point(p3.x, a1 * p3.x + b1);
+  }
+  x = (b2 - b1) / (a1 - a2);
+  y = a1 * x + b1;
+  return new Point(x, y);
+}
+
+function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
+  visiblePolygon = [];
+
+  // console.log("vis_pol");
+  // console.log(ll, rr);
+  for (let j = 0; j < points.length; j++) {
+    let k = (j + points.length - 1) % points.length;
+    // console.log("edge", j);
+    let b = 0;
+    let same = false;
+    // console.log(hidings[j][0], hidings[k][0]);
+    for (let a = 0; a < hidings[j][0].length && same === false; a++) {
+      while (b < hidings[k][0].length && hidings[k][0][b] <= hidings[j][0][a]) {
+        if (hidings[k][0][b] === hidings[j][0][a]) {
+          same = true;
+          break;
+        }
+        b += 1;
+      }
+    }
+    if (same === true) {
+      continue;
+    }
+    let or3 = orDet([points[c], points[j], points[k]]);
+    if (or3 === -1) {
+      continue;
+    }
+    let le = -1;
+    if (visiblePoints.includes(j)) {
+      le = j;
+    }
+    for (let m = 0; m < ll.length; m++) {
+      // console.log("m", ll[m]);
+      let or1 = orDet([points[c], points[j], points[ll[m]]]);
+      if (or1 === -1) {
+        continue;
+      }
+      let or2 = orDet([points[c], points[k], points[ll[m]]]);
+      if (or2 === 1) {
+        continue;
+      }
+      let or3 = orDet([points[j], points[k], points[ll[m]]]);
+      if (or3 === -1) {
+        continue;
+      }
+      let n = (c + 1) % points.length;
+
+      if (ll[m] !== k && ll[m] !== n) {
+        if (
+          le === -1 ||
+          orDet([points[c], points[le], points[ll[m]]]) > 0
+        ) {
+          le = ll[m];
+          // console.log("le", le);
+        }
+      }
+    }
+    let re = -1;
+    if (visiblePoints.includes(k)) {
+      re = k;
+    }
+
+    for (let m = 0; m < rr.length; m++) {
+      // console.log("mr", rr[m]);
+      let or1 = orDet([points[c], points[j], points[rr[m]]]);
+      if (or1 === -1) {
+        continue;
+      }
+      let or2 = orDet([points[c], points[k], points[rr[m]]]);
+      if (or2 === 1) {
+        continue;
+      }
+      let or3 = orDet([points[j], points[k], points[rr[m]]]);
+      if (or3 === -1) {
+        continue;
+      }
+      let p = (c + points.length - 1) % points.length;
+
+      if (rr[m] !== j) {
+        //} && rr[m] !== p) {
+        if (
+          re === -1 ||
+          orDet([points[c], points[re], points[rr[m]]]) < 0
+        ) {
+          re = rr[m];
+          // console.log("re", re);
+        }
+      }
+    }
+
+    let p = points[(c - 1 + points.length) % points.length];
+    let n = points[(c + 1) % points.length];
+    let or11 = orDet([points[c], p, n]);
+    if (or11 < 0 && false) {
+      rep = (c + points.length - 1) % points.length;
+
+      let or1 = -orDet([points[c], points[j], points[rep]]);
+      let or2 = -orDet([points[c], points[k], points[rep]]);
+      let or3 = -orDet([points[j], points[k], points[rep]]);
+
+      if (or1 === -1 || or2 === 1 || or3 === -2) {
+      } else {
+        if (
+          re === -1 ||
+          -orDet([points[c], points[re], points[rep]]) < 0
+        ) {
+          re = rep;
+          // console.log("re", re);
+        }
+      }
+    }
+
+    if (le === -1 || re === -1) {
+      // console.log(le, re);
+      continue;
+    }
+    if (le !== j) {
+      le = findIntersection([points[c], points[le], points[j], points[k]]);
+    } else {
+      le = points[j];
+      // console.log("le", j);
+    }
+    if (re !== k) {
+      re = findIntersection([points[c], points[re], points[j], points[k]]);
+    } else {
+      re = points[k];
+      // console.log("re", k);
+    }
+    d1 = euclideanSqDist(points[k], re);
+    d2 = euclideanSqDist(points[j], le);
+    d = euclideanSqDist(points[k], points[j]);
+    if (Math.sqrt(d1) + Math.sqrt(d2) > Math.sqrt(d)) {
+      continue;
+    }
+    visiblePolygon.push(re);
+    visiblePolygon.push(le);
+  }
+  return visiblePolygon;
+}
+
+
+function show_visibility(){
+	console.log('show_visibility', nextLightToShow);
+	if (nextLightToShow === lightings.length){
+		visibilitiesComputed = true;
+		draw();
+		nextLightToShow = 0;
+		return;
+	}
+	if (nextLightToShow === -1){
+		return;
+	}
+	if (visibilitiesComputed === true){
+		nextLightToShow = (nextLightToShow + 1) % (lightings.length + 1);
+		draw()
+		return;
+	}
+	light_idx = closestVertex(lightings[nextLightToShow], savedCoords);
+	let visiblePoints = pointVisibility(light_idx, savedCoords);
+	let lR = sortVisibleVertices(light_idx, savedCoords);
+	let ev = edgeVisibility(light_idx, savedCoords, visiblePoints[0], visiblePoints[1], lR[0], lR[1]);
+    visibilityArea.push(ev);
+	draw()
+	
+	nextLightToShow += 1
+	console.log(savedCoords)
+}
+function fisk(){
+	//Find the floodlights using Fisk's method
+	for( var i = 0; i< coords.length;i++){
+		savedCoords.push(coords[i]);
+	}
+	triangulatePolygon();
+	colour();
+	var lightIndex = 0;
+	var leastColours = savedCoords.length;
+	for(var i = 0;i<3;i++){
+		if(colours[i].length <= leastColours){
+			leastColours = colours[i];
+			lightIndex = i;
+		}
+	}
+	for(var i=0;i<colours[lightIndex].length;i++){
+		lightings.push(colours[lightIndex][i]);
+	}
+	if(savedCoords.length < 50){
+		save(savedCoords, lightings);
+	} else{
+		console.log('Too many (>50) vertices');
+	}
+		
+}
+
+function colour(){
+	for(var v = 0; v<3;v++){
+		colours[v].push(triangles[0][v]);
+	}
+	for(var tri=1; tri<triangles.length;tri++){
+		var a = whichColour(triangles[tri][0]);
+		var b = whichColour(triangles[tri][1]);
+		var c = whichColour(triangles[tri][2]);
+		if(a == -1){
+			if(b != -1){
+				if(c != -1){
+					colours[3-b-c].push(triangles[tri][0]);
+				}else{
+					if(b != 0){
+						colours[0].push(triangles[tri][0]);
+						colours[3-b].push(triangles[tri][2]);
+					}else{
+						colours[1].push(triangles[tri][0]);
+						colours[2].push(triangles[tri][2]);
+					}
+				}
+			}else{
+				if(c != -1){
+					if(c != 0){
+						colours[0].push(triangles[tri][0]);
+						colours[3-c].push(triangles[tri][1]);
+					}else{
+						colours[1].push(triangles[tri][0]);
+						colours[2].push(triangles[tri][1]);
+					}
+				}else{
+					colours[0].push(triangles[tri][0]);
+					colours[1].push(triangles[tri][1]);
+					colours[2].push(triangles[tri][2]);
+				}
+			}
+		}else{
+			if(b != -1){
+				if(c == -1){
+					colours[3-a-b].push(triangles[tri][2]);
+				}
+			}else{
+				if(c != -1){
+					colours[3-a-c].push(triangles[tri][1]);
+				}else{
+					if(a != 0){
+						colours[0].push(triangles[tri][1]);
+						colours[3-a].push(triangles[tri][2]);
+					}else{
+						colours[1].push(triangles[tri][1]);
+						colours[2].push(triangles[tri][2]);
+					}
+				}
+			}
+		}
+	}
+}
+
+function triangulatePolygon() {
+	while (coords.length > 3){
+		removeEar();
+	}
+	triangles.push([coords[0],coords[1],coords[2]]);
+	removed.push(coords.splice(0,1));
+	removed.push(coords.splice(0,1));
+	removed.push(coords.splice(0,1));
+}
+
+function removeEar() {
+	for (var point = 1; point < coords.length-1; point++) {
+		if (determinant(coords[point-1].x,coords[point-1].y,coords[point].x,coords[point].y,coords[point+1].x,coords[point+1].y)) {
+			if (!inEar(point-1,point,point+1)) {
+				triangles.push([coords[point-1],coords[point],coords[point+1]]);
+				removed.push(coords.splice(point, 1));
+				break;
+			}
+		}
+	}
+}
+
+function inEar(a,b,c){
+	for(var i = 0;i<coords.length;i++){
+		if(i !== a & i !== b & i !== c){
+			if(inTriangle(coords[a].x, coords[a].y, coords[b].x, coords[b].y, coords[c].x, coords[c].y, coords[i].x, coords[i].y)){
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+function inTriangle(x1, y1, x2, y2, x3, y3, x4, y4) {
+	//checks if a point is inside a triangle
+	a = false;
+	b = false;
+	c = false;
+	if (determinant(x1, y1, x2, y2, x4, y4)) {
+		a = true;
+	}
+	if (determinant(x2, y2, x3, y3, x4, y4)) {
+		b = true;
+	}
+	if (determinant(x3, y3, x1, y1, x4, y4)) {
+		c = true;
+	}
+	if (a & b & c) {
+		return true;
+	} else if (!a & !b & !c) {
+		return true;
+	}else{
+		return false;
+	}
+}
+
+function determinant(x1, y1, x2, y2, x3, y3) {
+//returns if a point is left or right of a line segment
+	if (x1 > x2) {
+		d = (x3 - x2) * (y1 - y2) - (y3 - y2) * (x1 - x2);
+	} else {
+		d = (x3 - x1) * (y2 - y1) - (y3 - y1) * (x2 - x1);
+	}
+	if (x1 > x2) {
+		return d < 0;
+	} else {
+		return d >= 0;
+	}
+}
+
+function whichColour(a){
+	var result = -1;
+	for(var i = 0; i<colours.length;i++){
+		if(colours[i].indexOf(a) !== -1){
+			result = i;
+			break;
+		}
+	}
+	return result;
+}
+
+function addCoords(event) {
+	//when the user clicks on a point adds that point in the list of coords
+	var c = document.getElementById("myCanvas");
+	var ctx = c.getContext("2d");
+	var x = event.clientX;
+	var y = event.clientY;
+	ctx.beginPath();
+	ctx.arc(x, y, 3, 0, 2 * Math.PI);
+	ctx.fillStyle = '#000000';
+	ctx.fill();
+	coords.push(new Point(x,y));
+}
+
+function reset() {
+	//removes the coords from the canvas and empties the list
+	var c = document.getElementById("myCanvas");
+	var ctx = c.getContext("2d");
+	ctx.clearRect(0, 0, c.width, c.height);
+	coords = [];
+	savedCoords = [];
+	lightings = [];
+	nextLightToShow = -1;
+	visibilitiesComputed = false;
+	visibilityArea = [];
+	triangles = [];
+	removed = [];
+	colours = [[],[],[]];
+}
+
+function draw(){
+	//Draws the coords that exist already in the coords list on the canvas and the lines between them
+	var c = document.getElementById("myCanvas");
+	var ctx = c.getContext("2d");
+	if(coords.length>0){
+		ctx.clearRect(0, 0, c.width, c.height);
+		for( var i = 0; i< coords.length; i++){
+			ctx.beginPath();
+			ctx.arc(coords[i].x, coords[i].y, 3, 0, 2 * Math.PI);
+			ctx.fillStyle = '#000000';
+			ctx.fill();
+		}
+		ctx.beginPath();
+		ctx.strokeStyle = '#000000';
+		ctx.strokeWidth = 1;
+		ctx.moveTo(coords[0].x, coords[0].y);
+		for(var i=1; i< coords.length; i++){
+			ctx.lineTo(coords[i].x, coords[i].y);
+			ctx.moveTo(coords[i].x, coords[i].y);
+		}
+		ctx.lineTo(coords[0].x, coords[0].y)
+		ctx.stroke();
+	}
+	
+	if (nextLightToShow === 0){
+		ctx.strokeStyle = '#000000'
+		ctx.fillStyle = '#FFFFFF';
+		ctx.moveTo(savedCoords[0].x, savedCoords[0].y);
+		for (let i = 1; i < savedCoords.length; i++) {
+			ctx.lineTo(savedCoords[i].x, savedCoords[i].y);
+		}
+		ctx.lineTo(savedCoords[0].x, savedCoords[0].y);
+		ctx.stroke();
+		ctx.fill();
+	}
+	for (let i = 0; i < nextLightToShow; i++) {
+		ctx.fillStyle = '#FFFF99';
+		e = visibilityArea[i];
+		ctx.moveTo(e[0].x, e[0].y);
+		for (let j = 1; j < e.length; j++) {
+			ctx.lineTo(e[j].x, e[j].y);
+		}
+		ctx.lineTo(e[0].x, e[0].y);
+		ctx.fill();
+	}
+	for (let i = 0; i < nextLightToShow; i++) {
+		ctx.strokeStyle = '#000000';
+		e = visibilityArea[i];
+		ctx.moveTo(e[0].x, e[0].y);
+		for (let j = 1; j < e.length; j++) {
+			ctx.lineTo(e[j].x, e[j].y);
+		}
+		ctx.lineTo(e[0].x, e[0].y);
+		ctx.stroke();
+	}
+	ctx.strokeStyle = '#000000';
+	ctx.fillStyle = '#000000';
+	for( var i = 0; i < lightings.length; i++){
+		ctx.beginPath();
+		ctx.arc(lightings[i].x, lightings[i].y, 5, 0, 2 * Math.PI);
+		ctx.fillStyle = '#000000';
+		if (i < nextLightToShow){
+			ctx.fillStyle = '#FF9900';
+		}
+		ctx.fill();
+	}
+	ctx.fillStyle = '#000000';
+}
+
+var list = document.querySelector('ul');
+list.addEventListener('click', function(ev) {
+  if (ev.target.tagName === 'LI') {
+    //ev.target.classList.toggle('checked');
+    reset();
+    var memory = window.localStorage.getItem(ev.target.childNodes[0].nodeValue);
+    var vertices = memory.split("|")[0];
+    var floodLights = memory.split("|")[1];
+    var vertices = vertices.split(" ");
+    var floodLights = floodLights.split(" ");
+    for( i in vertices){
+    	coords.push(new Point(parseInt(vertices[i].split(",")[0]),parseInt(vertices[i].split(",")[1])));
+    }
+    for( j in floodLights){
+    	lightings.push(new Point(parseInt(floodLights[j].split(",")[0]),parseInt(floodLights[j].split(",")[1])));
+    }
+    draw();
+  }
+}, false);
+
+function save(vertices, floodLights){
+	if (typeof(Storage) !== "undefined") {
+	 	var name = vertices.length.toString()+" "+floodLights.length.toString(); 
+	 	var text = "";
+	 	for(i in vertices){
+	 		text += vertices[i].x.toString()+","+vertices[i].y.toString()+" ";
+	 	}
+	 	text += "| "
+	 	for(i in floodLights){
+	 		text += floodLights[i].x.toString()+","+floodLights[i].y.toString()+" ";
+	 	}
+	 	window.localStorage.setItem(name, text);
+	 	document.getElementById("myUL").innerHTML = "";
+	 	for ( var i = 0, len = localStorage.length; i < len; ++i ) {
+		  var li = document.createElement("li");
+		  var inputValue = localStorage.key(i);
+		  var t = document.createTextNode(inputValue);
+		  li.appendChild(t);
+		  document.getElementById("myUL").appendChild(li);
+		}
+	}else{
+		console.log("No storage available");
+	}
+}
+
+function intersects(a, b, c, d, p, q, r, s) {
+	//Returns true if 2 line-segments intersect eachother and false otherwise
+	var det = (c - a) * (s - q) - (r - p) * (d - b);
+	if (det === 0) {
+		return false;
+	} else {
+		var l = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+		var g = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+		return 0 < l && l < 1 && 0 < g && g < 1;
+	}
+}
+</script>
+
+</body>
+</html>
