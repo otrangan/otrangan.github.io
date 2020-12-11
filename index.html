@@ -17,6 +17,47 @@
   <a name="ref1">[1]</a>.
   <a href = "Applet.html">Applet</a>
 </p>
+<h2>1.1 Apllication</h2>
+<p>
+  In order to have an applied demonstration of this calculation we have also created an application using the languages <b>HTML</b> and <b>Javascript</b>.
+  This application allows the user to draw a polygon by clicking on the points that they want to use as vertices and then finds a possible solution by using Fisk's proof.
+</p>
+<p>
+  In order to design the polygon that they wish to test, the user must click on the points where the vertices of the polygon will be on the canvas in a counter-clockwise direction.
+  Before starting the triangulation the application makes sure that the given polygon is simple.
+</p>
+<h3>1.1.1 Finding Floodlights</h3>
+<p>
+  To find a possible solution, the application uses the theory behind Fisk's proof which is:
+</p>
+<p>
+  (1)Triangulate the polygon without adding extra vertices.
+</p>
+<p>
+  (2)3-color the triangulated polygon by assigning each vertice in a triangle to a different color.
+</p>
+<p>
+  (3)Select the color with the least amount of vertices as the solution of the polygon.
+</p>
+<h3>1.1.2 Triangulation</h3>
+<p>
+  The polygon triangulation is performed by using the <b>Ear clipping</b> method:
+</p>
+<p>
+  (1)Find an ear in the polygon that doesn't have other points inside it.
+</p>
+<p>
+  (2)Remove the ear by removing the middle point from the polygon.
+</p>
+<p>
+  (3)Repeat this process until there is only one triangle remaining.
+</p>
+<h3>1.1.3 Leaderoard</h3>
+<p>
+  The application is also able to save previous solutions and show them in a vertical list on the right side of the app.
+  If the user wishes they can select one of these solutions and it'll be recreated on the canvas.
+  This is done by using the localstorage function of <b>Javascript</b>.
+</p>
 <h1 style="text-align:center">2 Definitions</h1>
 <p>
   In this part, we introduce some definitions which have been or will be used in this project.

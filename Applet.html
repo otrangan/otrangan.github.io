@@ -5,10 +5,12 @@
 <title>Vertex pi-floodlight applet</title>
 </head>
 
+<!-- The main canvas -->
 <body onresize="resize()" onload="resize()">
 <div class="show">
-<canvas id="myCanvas" style="border:1px solid #000000;" onclick="addCoords(event)">Your browser doesn't support canvas</canvas>
+<canvas id="myCanvas" style="border:1px solid #000000;" onclick="pointClicked(event)">Your browser doesn't support canvas</canvas>
 
+<!-- Representation of the leaderboard -->
 <p>Vertices | Floodlights</p>
 <ul id="myUL"></ul>
 
@@ -21,6 +23,7 @@
 <button onclick="show_visibility()">Light up</button>
 <!--Press to delete the selected polygon-->
 <button onclick="reset()">Reset</button>
+<!--Press to go to the report-->
 <a href = "index.html">Report</a>
 </div>
 <style>
@@ -62,36 +65,38 @@ ul li {
 </style>
 <script>
 
-//class representing the coords used for the polygon
+//Class representing the coords used for the polygon
 function Point(x, y) {
 	this.x = x;
 	this.y = y;
 }
+
+Point.prototype.toString = function() {
+	return this.x+","+this.y;
+}
+
 function subPoints(a, b){
     return new Point(a.x - b.x, a.y - b.y);
 }
 
-Point.prototype.toString = function() {
-	return this.x+", "+this.y;
-}
-
-var coords = [];
-var savedCoords = [];
-var lightings = []; //List of the lights
+var coords = []; //List of the coordinates chosen by the user
+var savedCoords = []; //Saved original coordinates for the Leaderboard
+var lightings = []; //List of the floodlight positions
 var nextLightToShow = -2;
 var visibilitiesComputed = false;
 var visibilityArea = [];
-var triangles = [];
-var removed = [];
-var colours = [[],[],[]];
+var triangles = [];//List with the triangles created from the polygon
+var colours = [[],[],[]];//Lists with the vertices that belong into each colour
 
+//Adjusts the size of the elements when the size of the window changes
 function resize(){
-	//Adjusts the size of the elements when the size of the window changes
 	var c = document.getElementById("myCanvas");
 	var ctx = c.getContext("2d");
+	//Reset the canvas
 	ctx.canvas.width  = window.innerWidth-200;
 	ctx.canvas.height = window.innerHeight-300;
 	draw();
+	//Refill the Leaderboard
 	document.getElementById("myUL").innerHTML = "";
 	for ( var i = 0, len = localStorage.length; i < len; ++i ) {
 		var li = document.createElement("li");
@@ -102,6 +107,7 @@ function resize(){
 	}
 }
 
+//Verifies that the polyogn is simple and finds the floodlight positions for the polygon using Fisk's theorem of triangulation
 function calculate() {
 	if(coords.length > 2){
 		//Tests if the polygon is simple
@@ -126,8 +132,7 @@ function calculate() {
 				}
 			}
 		}
-		if(simple){			
-			//Add code here
+		if(simple){
 			draw();
 			fisk();
 			draw();
@@ -136,6 +141,208 @@ function calculate() {
 			//if the polygon is not simple we can't calculate
 			console.log("Polygon is not simple");
 		}
+	}
+}
+
+//Find the floodlights using Fisk's method
+function fisk(){
+	//Save the original coords
+	for( var i = 0; i< coords.length;i++){
+		savedCoords.push(coords[i]);
+	}
+	triangulatePolygon();
+	colour();
+	//Find the which colour contains the least amount of vertices
+	var lightIndex = 0;
+	var leastColours = savedCoords.length;
+	for(var i = 0;i<3;i++){
+		if(colours[i].length <= leastColours){
+			leastColours = colours[i];
+			lightIndex = i;
+		}
+	}
+	//Place the floodlights in the places of the colour with the least amount of vertices
+	for(var i=0;i<colours[lightIndex].length;i++){
+		lightings.push(colours[lightIndex][i]);
+	}
+	//If the polygon is below a certain size we save it to the leaderboard
+	if(savedCoords.length < 50){
+		save(savedCoords, lightings);
+	} else{
+		console.log('Too many (>50) vertices');
+	}
+}
+
+//Triangulates the polygon using the Ear removal theorem
+function triangulatePolygon() {
+	while (coords.length > 3){
+		removeEar();
+	}
+	//If there are only 3 vertices then we have a triangle
+	triangles.push([coords[0],coords[1],coords[2]]);
+	coords.splice(0,1);
+	coords.splice(0,1);
+	coords.splice(0,1);
+}
+
+//Finds an ear in the polygon and removes if it's empty
+function removeEar() {
+	for (var point = 1; point < coords.length-1; point++) {
+		if (determinant(coords[point-1].x,coords[point-1].y,coords[point].x,coords[point].y,coords[point+1].x,coords[point+1].y)) {
+			if (!inEar(point-1,point,point+1)) {
+				triangles.push([coords[point-1],coords[point],coords[point+1]]);
+				coords.splice(point, 1);
+				break;
+			}
+		}
+	}
+}
+
+//Sees in the given ear is empty
+function inEar(a,b,c){
+	for(var i = 0;i<coords.length;i++){
+		if(i !== a & i !== b & i !== c){
+			if(inTriangle(coords[a].x, coords[a].y, coords[b].x, coords[b].y, coords[c].x, coords[c].y, coords[i].x, coords[i].y)){
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+//Returns if the point (x4,y4) is inside the triangle created by the points(x1,y1),(x2,y2) and (x3,y3)
+function inTriangle(x1, y1, x2, y2, x3, y3, x4, y4) {
+	a = false;
+	b = false;
+	c = false;
+	if (determinant(x1, y1, x2, y2, x4, y4)) {
+		a = true;
+	}
+	if (determinant(x2, y2, x3, y3, x4, y4)) {
+		b = true;
+	}
+	if (determinant(x3, y3, x1, y1, x4, y4)) {
+		c = true;
+	}
+	if (a & b & c) {
+		return true;
+	} else if (!a & !b & !c) {
+		return true;
+	}else{
+		return false;
+	}
+}
+
+//Returns if the point (x3,y3) is left or right of the line segment created by the points(x1,y1) and (x2,y2)
+function determinant(x1, y1, x2, y2, x3, y3) {
+	if (x1 > x2) {
+		d = (x3 - x2) * (y1 - y2) - (y3 - y2) * (x1 - x2);
+	} else {
+		d = (x3 - x1) * (y2 - y1) - (y3 - y1) * (x2 - x1);
+	}
+	if (x1 > x2) {
+		return d < 0;
+	} else {
+		return d >= 0;
+	}
+}
+
+//Returns to which colour the given vertice belongs
+function whichColour(a){
+	var result = -1;
+	for(var i = 0; i<colours.length;i++){
+		if(colours[i].indexOf(a) !== -1){
+			result = i;
+			break;
+		}
+	}
+	return result;
+}
+
+//Assigns a colour to each vertice of the triangulated polygon
+function colour(){
+	//For the first triangle we assign each point to a different colour
+	for(var v = 0; v<3;v++){
+		colours[v].push(triangles[0][v]);
+	}
+	//For the other triangles we find if any of the points already belong to a colour
+	//and add the uncoloured points to te unused colours
+	for(var tri=1; tri<triangles.length;tri++){
+		var a = whichColour(triangles[tri][0]);
+		var b = whichColour(triangles[tri][1]);
+		var c = whichColour(triangles[tri][2]);
+		//a uncoloured
+		if(a == -1){
+			//b coloured
+			if(b != -1){
+				//c coloured
+				if(c != -1){
+					colours[3-b-c].push(triangles[tri][0]);
+				//c uncoloured
+				}else{
+					if(b != 0){
+						colours[0].push(triangles[tri][0]);
+						colours[3-b].push(triangles[tri][2]);
+					}else{
+						colours[1].push(triangles[tri][0]);
+						colours[2].push(triangles[tri][2]);
+					}
+				}
+			//b uncoloured
+			}else{
+				//c coloured
+				if(c != -1){
+					if(c != 0){
+						colours[0].push(triangles[tri][0]);
+						colours[3-c].push(triangles[tri][1]);
+					}else{
+						colours[1].push(triangles[tri][0]);
+						colours[2].push(triangles[tri][1]);
+					}
+				//c uncoloured
+				}else{
+					colours[0].push(triangles[tri][0]);
+					colours[1].push(triangles[tri][1]);
+					colours[2].push(triangles[tri][2]);
+				}
+			}
+		//a coloured
+		}else{
+			//b coloured
+			if(b != -1){
+				//c coloured
+				if(c == -1){
+					colours[3-a-b].push(triangles[tri][2]);
+				}
+			//b uncoloured
+			}else{
+				//c coloured
+				if(c != -1){
+					colours[3-a-c].push(triangles[tri][1]);
+				//c uncoloured
+				}else{
+					if(a != 0){
+						colours[0].push(triangles[tri][1]);
+						colours[3-a].push(triangles[tri][2]);
+					}else{
+						colours[1].push(triangles[tri][1]);
+						colours[2].push(triangles[tri][2]);
+					}
+				}
+			}
+		}
+	}
+}
+
+//Returns if the line segments created four points intersect
+function intersects(a, b, c, d, p, q, r, s) {
+	var det = (c - a) * (s - q) - (r - p) * (d - b);
+	if (det === 0) {
+		return false;
+	} else {
+		var l = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+		var g = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+		return 0 < l && l < 1 && 0 < g && g < 1;
 	}
 }
 
@@ -265,13 +472,10 @@ function sortVisibleVertices(c, points) {
       rightEdges.push(v);
     }
   }
-  // console.log("left", leftEdges);
-  // console.log("right", rightEdges);
   return [leftEdges, rightEdges];
 }
 
 function findIntersection(dots) {
-  // console.log("dots", dots);
   p1 = dots[0];
   p2 = dots[1];
   p3 = dots[2];
@@ -295,15 +499,10 @@ function findIntersection(dots) {
 
 function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
   visiblePolygon = [];
-
-  // console.log("vis_pol");
-  // console.log(ll, rr);
   for (let j = 0; j < points.length; j++) {
     let k = (j + points.length - 1) % points.length;
-    // console.log("edge", j);
     let b = 0;
     let same = false;
-    // console.log(hidings[j][0], hidings[k][0]);
     for (let a = 0; a < hidings[j][0].length && same === false; a++) {
       while (b < hidings[k][0].length && hidings[k][0][b] <= hidings[j][0][a]) {
         if (hidings[k][0][b] === hidings[j][0][a]) {
@@ -325,7 +524,6 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
       le = j;
     }
     for (let m = 0; m < ll.length; m++) {
-      // console.log("m", ll[m]);
       let or1 = orDet([points[c], points[j], points[ll[m]]]);
       if (or1 === -1) {
         continue;
@@ -346,7 +544,6 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
           orDet([points[c], points[le], points[ll[m]]]) > 0
         ) {
           le = ll[m];
-          // console.log("le", le);
         }
       }
     }
@@ -356,7 +553,6 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
     }
 
     for (let m = 0; m < rr.length; m++) {
-      // console.log("mr", rr[m]);
       let or1 = orDet([points[c], points[j], points[rr[m]]]);
       if (or1 === -1) {
         continue;
@@ -378,7 +574,6 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
           orDet([points[c], points[re], points[rr[m]]]) < 0
         ) {
           re = rr[m];
-          // console.log("re", re);
         }
       }
     }
@@ -400,26 +595,22 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
           -orDet([points[c], points[re], points[rep]]) < 0
         ) {
           re = rep;
-          // console.log("re", re);
         }
       }
     }
 
     if (le === -1 || re === -1) {
-      // console.log(le, re);
       continue;
     }
     if (le !== j) {
       le = findIntersection([points[c], points[le], points[j], points[k]]);
     } else {
       le = points[j];
-      // console.log("le", j);
     }
     if (re !== k) {
       re = findIntersection([points[c], points[re], points[j], points[k]]);
     } else {
       re = points[k];
-      // console.log("re", k);
     }
     d1 = euclideanSqDist(points[k], re);
     d2 = euclideanSqDist(points[j], le);
@@ -433,9 +624,7 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
   return visiblePolygon;
 }
 
-
 function show_visibility(){
-	// console.log('show_visibility', nextLightToShow);
 	if (nextLightToShow === lightings.length){
 		visibilitiesComputed = true;
 		draw();
@@ -458,175 +647,10 @@ function show_visibility(){
 	draw()
 	
 	nextLightToShow += 1
-	// console.log(savedCoords)
-}
-function fisk(){
-	//Find the floodlights using Fisk's method
-	for( var i = 0; i< coords.length;i++){
-		savedCoords.push(coords[i]);
-	}
-	triangulatePolygon();
-	colour();
-	var lightIndex = 0;
-	var leastColours = savedCoords.length;
-	for(var i = 0;i<3;i++){
-		if(colours[i].length <= leastColours){
-			leastColours = colours[i];
-			lightIndex = i;
-		}
-	}
-	for(var i=0;i<colours[lightIndex].length;i++){
-		lightings.push(colours[lightIndex][i]);
-	}
-	if(savedCoords.length < 50){
-		save(savedCoords, lightings);
-	} else{
-		console.log('Too many (>50) vertices');
-	}
-		
 }
 
-function colour(){
-	for(var v = 0; v<3;v++){
-		colours[v].push(triangles[0][v]);
-	}
-	for(var tri=1; tri<triangles.length;tri++){
-		var a = whichColour(triangles[tri][0]);
-		var b = whichColour(triangles[tri][1]);
-		var c = whichColour(triangles[tri][2]);
-		if(a == -1){
-			if(b != -1){
-				if(c != -1){
-					colours[3-b-c].push(triangles[tri][0]);
-				}else{
-					if(b != 0){
-						colours[0].push(triangles[tri][0]);
-						colours[3-b].push(triangles[tri][2]);
-					}else{
-						colours[1].push(triangles[tri][0]);
-						colours[2].push(triangles[tri][2]);
-					}
-				}
-			}else{
-				if(c != -1){
-					if(c != 0){
-						colours[0].push(triangles[tri][0]);
-						colours[3-c].push(triangles[tri][1]);
-					}else{
-						colours[1].push(triangles[tri][0]);
-						colours[2].push(triangles[tri][1]);
-					}
-				}else{
-					colours[0].push(triangles[tri][0]);
-					colours[1].push(triangles[tri][1]);
-					colours[2].push(triangles[tri][2]);
-				}
-			}
-		}else{
-			if(b != -1){
-				if(c == -1){
-					colours[3-a-b].push(triangles[tri][2]);
-				}
-			}else{
-				if(c != -1){
-					colours[3-a-c].push(triangles[tri][1]);
-				}else{
-					if(a != 0){
-						colours[0].push(triangles[tri][1]);
-						colours[3-a].push(triangles[tri][2]);
-					}else{
-						colours[1].push(triangles[tri][1]);
-						colours[2].push(triangles[tri][2]);
-					}
-				}
-			}
-		}
-	}
-}
-
-function triangulatePolygon() {
-	while (coords.length > 3){
-		removeEar();
-	}
-	triangles.push([coords[0],coords[1],coords[2]]);
-	removed.push(coords.splice(0,1));
-	removed.push(coords.splice(0,1));
-	removed.push(coords.splice(0,1));
-}
-
-function removeEar() {
-	for (var point = 1; point < coords.length-1; point++) {
-		if (determinant(coords[point-1].x,coords[point-1].y,coords[point].x,coords[point].y,coords[point+1].x,coords[point+1].y)) {
-			if (!inEar(point-1,point,point+1)) {
-				triangles.push([coords[point-1],coords[point],coords[point+1]]);
-				removed.push(coords.splice(point, 1));
-				break;
-			}
-		}
-	}
-}
-
-function inEar(a,b,c){
-	for(var i = 0;i<coords.length;i++){
-		if(i !== a & i !== b & i !== c){
-			if(inTriangle(coords[a].x, coords[a].y, coords[b].x, coords[b].y, coords[c].x, coords[c].y, coords[i].x, coords[i].y)){
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-function inTriangle(x1, y1, x2, y2, x3, y3, x4, y4) {
-	//checks if a point is inside a triangle
-	a = false;
-	b = false;
-	c = false;
-	if (determinant(x1, y1, x2, y2, x4, y4)) {
-		a = true;
-	}
-	if (determinant(x2, y2, x3, y3, x4, y4)) {
-		b = true;
-	}
-	if (determinant(x3, y3, x1, y1, x4, y4)) {
-		c = true;
-	}
-	if (a & b & c) {
-		return true;
-	} else if (!a & !b & !c) {
-		return true;
-	}else{
-		return false;
-	}
-}
-
-function determinant(x1, y1, x2, y2, x3, y3) {
-//returns if a point is left or right of a line segment
-	if (x1 > x2) {
-		d = (x3 - x2) * (y1 - y2) - (y3 - y2) * (x1 - x2);
-	} else {
-		d = (x3 - x1) * (y2 - y1) - (y3 - y1) * (x2 - x1);
-	}
-	if (x1 > x2) {
-		return d < 0;
-	} else {
-		return d >= 0;
-	}
-}
-
-function whichColour(a){
-	var result = -1;
-	for(var i = 0; i<colours.length;i++){
-		if(colours[i].indexOf(a) !== -1){
-			result = i;
-			break;
-		}
-	}
-	return result;
-}
-
-function addCoords(event) {
-	//when the user clicks on a point adds that point in the list of coords
+//Creates a new point using the coordinates of where the user clicked and adds it to the polygon
+function pointClicked(event) {
 	var c = document.getElementById("myCanvas");
 	var ctx = c.getContext("2d");
 	var x = event.clientX;
@@ -638,8 +662,8 @@ function addCoords(event) {
 	coords.push(new Point(x,y));
 }
 
+//Empties all memory of the applet(except of the leaderboard) and resets the canvas
 function reset() {
-	//removes the coords from the canvas and empties the list
 	var c = document.getElementById("myCanvas");
 	var ctx = c.getContext("2d");
 	ctx.clearRect(0, 0, c.width, c.height);
@@ -650,14 +674,15 @@ function reset() {
 	visibilitiesComputed = false;
 	visibilityArea = [];
 	triangles = [];
-	removed = [];
 	colours = [[],[],[]];
 }
 
+//Draws the polygon created by the points the user has selected and places the floodlights
+//or shows the visibilty of the next floodlight
 function draw(){
-	//Draws the coords that exist already in the coords list on the canvas and the lines between them
 	var c = document.getElementById("myCanvas");
 	var ctx = c.getContext("2d");
+	//Draw the polygon
 	if(coords.length>0){
 		ctx.clearRect(0, 0, c.width, c.height);
 		for( var i = 0; i< coords.length; i++){
@@ -711,6 +736,7 @@ function draw(){
 	}
 	ctx.strokeStyle = '#000000';
 	ctx.fillStyle = '#000000';
+	//Places the floodlights
 	for( var i = 0; i < lightings.length; i++){
 		ctx.beginPath();
 		ctx.arc(lightings[i].x, lightings[i].y, 5, 0, 2 * Math.PI);
@@ -723,10 +749,10 @@ function draw(){
 	ctx.fillStyle = '#000000';
 }
 
+//If the user clicks on a input of the leaderboard we recreate the correponding polygon
 var list = document.querySelector('ul');
 list.addEventListener('click', function(ev) {
   if (ev.target.tagName === 'LI') {
-    //ev.target.classList.toggle('checked');
     reset();
     var memory = window.localStorage.getItem(ev.target.childNodes[0].nodeValue);
     var vertices = memory.split("|")[0];
@@ -744,16 +770,17 @@ list.addEventListener('click', function(ev) {
   }
 }, false);
 
+//Saves a polygon and adds it to the leaderboard
 function save(vertices, floodLights){
 	if (typeof(Storage) !== "undefined") {
 	 	var name = vertices.length.toString()+" "+floodLights.length.toString(); 
 	 	var text = "";
 	 	for(i in vertices){
-	 		text += vertices[i].x.toString()+","+vertices[i].y.toString()+" ";
+	 		text += vertices[i].toString()+" ";
 	 	}
 	 	text += "| "
 	 	for(i in floodLights){
-	 		text += floodLights[i].x.toString()+","+floodLights[i].y.toString()+" ";
+	 		text += floodLights[i].toString()+" ";
 	 	}
 	 	window.localStorage.setItem(name, text);
 	 	document.getElementById("myUL").innerHTML = "";
@@ -766,18 +793,6 @@ function save(vertices, floodLights){
 		}
 	}else{
 		console.log("No storage available");
-	}
-}
-
-function intersects(a, b, c, d, p, q, r, s) {
-	//Returns true if 2 line-segments intersect eachother and false otherwise
-	var det = (c - a) * (s - q) - (r - p) * (d - b);
-	if (det === 0) {
-		return false;
-	} else {
-		var l = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
-		var g = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
-		return 0 < l && l < 1 && 0 < g && g < 1;
 	}
 }
 </script>
