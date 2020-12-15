@@ -17,7 +17,7 @@
   <a name="ref1">[1]</a>.
   <a href = "Applet.html">Applet</a>
 </p>
-<h2>1.1 Apllication [Orestis]</h2>
+<h2>1.1 Apllication [Tranganidas Orestis]</h2>
 <p>
   In order to have an applied demonstration of this calculation we have also created an application using the languages <b>HTML</b> and <b>Javascript</b>.
   This application allows the user to draw a polygon by clicking on the points that they want to use as vertices and then finds a possible solution by using Fisk's proof.
@@ -59,7 +59,7 @@
   If the user wishes they can select one of these solutions and it'll be recreated on the canvas.
   This is done by using the localstorage function of <b>Javascript</b>.
 </p>
-<h2>1.2 Lighting [Agnieszka]</h2>
+<h2>1.2 Lighting [Dudek Agnieszka]</h2>
 <p>
   The user can click the <b>Light up</b> button to switch on the lights from Fisk's solution one by one.
   For each edge of the polygon the algorithm checks how much it is visible from the light source.
@@ -93,7 +93,7 @@
 Please take a look at the example and how the upper edge is limited by different hooks > <.
 <img src="images/visibility.png" alt="Ligthing" width="300" />
 
-<h1 style="text-align:center">2 Definitions [Han]</h1>
+<h1 style="text-align:center">2 Definitions [Jiang Han]</h1>
 <p>
   In this part, we introduce some definitions which have been or will be used in this project.
 </p>
@@ -168,7 +168,7 @@ Please take a look at the example and how the upper edge is limited by different
 <p>
   Let x &isin; V(P) be a convex vertex of P and let y &isin; V(P) be a vertex adjacent to x.We denote by G(D)<sub>xy</sub> the rooted tree G(D) where the root R corresponds to the pseudo-triangle containing side xy. We write S&lt;T for two pseudo-triangles S, T &isin; D<sub>xy</sub> if T is the <i>ancestor</i> of S in G(D)<sub>xy</sub>. For example, S &lt; R for all pseudo-triangles S &ne; R. As a shorthand, we denote by D<sub>xy</sub> the pseudo-triangulation D together with the partial order of ancestor relationships in the tree G(D)<sub>xy</sub>.
 </p>
-<h1 style="text-align:center">3	Illuminating a pseudo-triangle [Han]</h1>
+<h1 style="text-align:center">3	Illuminating a pseudo-triangle [Jiang Han]</h1>
 <p>
   To prove the upper bound on the number of edge-aligned vertex pi-floodlights we first show how to illuminate a single pseudo-triangle with &lfloor;(2n-3)/3&rfloor; vertex pi-floodlights and then generalize this approach to a pseudo-triangulation of a simple polygon.
 </p>
@@ -192,7 +192,7 @@ Please take a look at the example and how the upper edge is limited by different
     <i>Proof.</i> Consider the two guard allocations which put one pi-guard at corner b (resp., c) and outward-facing pi-guards at vertices along the adjacent chain ba (resp., ca). Both monitor   T and jointly use a total of l-1 guards (see the above figure (right)).
   </p>
 </div>
-<h1 style="text-align:center">4	Balanced geodesic triangulation [Han]</h1>
+<h1 style="text-align:center">4	Balanced geodesic triangulation [Jiang Han]</h1>
 <p>
   In order to generate the upper bound of number of floodlights for one pseudo-triangle to a simple polygon, we need to decompose the polygon into pseudo-triangle. To do that, there are many methods proposed <a name="ref1">[3]</a><a name="ref1">[4]</a><a name="ref1">[5]</a>. In this project, we will use the so called balanced geodesic triangulation in reference <a name="ref1">[3]</a>.
 </p>
@@ -237,7 +237,7 @@ Please take a look at the example and how the upper edge is limited by different
 <p>
   We have implemented a JavaScript program to implement the <a href='https://rhmcl.csb.app/'>balanced geodesic triangulation</a>. Left click to draw points in the canvas and click the 'pseudo-tr'button to get the balanced geodesic triangulation of the polygon.
 </p>
-<h1 style="text-align:center">5	Illuminating a simple polygon [Han]</h1>
+<h1 style="text-align:center">5	Illuminating a simple polygon [Hiang Han]</h1>
 <h2>5.1 Proof of upper bound [1]</h2>
 <p>
   <b>Theorem:</b> &lfloor;(2n-k)/3&rfloor; edge-aligned vertex pi-guards can always monitor a simple polygon with n vertices, k of which are convex. 
