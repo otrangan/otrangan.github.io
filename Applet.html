@@ -346,12 +346,26 @@ function intersects(a, b, c, d, p, q, r, s) {
 	}
 }
 
+// Supplementary functions
 function euclideanSqDist(p, q) {
   return (p.x - q.x) ** 2 + (p.y - q.y) ** 2;
 }
 
+function crossProduct(u, v) {
+  return u.x * v.y - v.x * u.y;
+}
+
+function orDet(dots) { // orientation determinant
+  let c = crossProduct(subPoints(dots[1],dots[0]), subPoints(dots[2],dots[0]));
+  if (c === 0) {
+    return 0;
+  }
+  return c < 0 ? -1 : 1;
+}
+
+
+// Finds the closest vertex of the polygon to the clicked point
 function closestVertex(p, points) {
-  // console.log('p', p)
   let c = 0,
     d = euclideanSqDist(p, points[0]);
   for (let i = 1; i < points.length; i++) {
@@ -364,18 +378,7 @@ function closestVertex(p, points) {
   return c;
 }
 
-function crossProduct(u, v) {
-  return u.x * v.y - v.x * u.y;
-}
-
-function orDet(dots) {
-  let c = crossProduct(subPoints(dots[1],dots[0]), subPoints(dots[2],dots[0]));
-  if (c === 0) {
-    return 0;
-  }
-  return c < 0 ? -1 : 1;
-}
-
+// Checks if two edges are interesecting
 function isIntersection(e1, e2) {
   let o1 = orDet([e1[0], e1[1], e2[0]]);
   let o2 = orDet([e1[0], e1[1], e2[1]]);
@@ -396,6 +399,7 @@ function isIntersection(e1, e2) {
   return true;
 }
 
+// Checks if the vertex of the polygon is visible from the source of light
 function isPointVisible(c, points, x) {
   let hidingEdges = [];
   let outsideRange = false;
@@ -408,7 +412,7 @@ function isPointVisible(c, points, x) {
   if (or1 === -1 || (or2 === 1 && or3 === 1)) {
     outsideRange = true;
   }
-
+  // Check if any edge hides the point
   let e1 = [points[c], points[x]];
   for (let j = 0; j < points.length; j++) {
     let k = (j + 1) % points.length;
@@ -424,6 +428,7 @@ function isPointVisible(c, points, x) {
   return [hidingEdges, outsideRange];
 }
 
+// Finds which vertices are visible from the point
 function pointVisibility(c, points) {
   let visibleVertices = [];
   let hid = [];
@@ -444,6 +449,8 @@ function pointVisibility(c, points) {
   return [visibleVertices, hid];
 }
 
+// Sorts the vertices in relation to the light source and
+// into > and < corners
 function sortVisibleVertices(c, points) {
   vv = [];
   for (let i = 0; i < points.length; i++) {
@@ -475,6 +482,7 @@ function sortVisibleVertices(c, points) {
   return [leftEdges, rightEdges];
 }
 
+// Finds the intersection between two edges
 function findIntersection(dots) {
   p1 = dots[0];
   p2 = dots[1];
@@ -497,11 +505,14 @@ function findIntersection(dots) {
   return new Point(x, y);
 }
 
+// Checks which fragment of the edge is visible from the source of light,
+// goes through all > and < which can hide one end of the edge
 function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
   visiblePolygon = [];
   for (let j = 0; j < points.length; j++) {
     let k = (j + points.length - 1) % points.length;
     let b = 0;
+    // both ends of the edge are hidden by the same edge
     let same = false;
     for (let a = 0; a < hidings[j][0].length && same === false; a++) {
       while (b < hidings[k][0].length && hidings[k][0][b] <= hidings[j][0][a]) {
@@ -512,14 +523,16 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
         b += 1;
       }
     }
+
     if (same === true) {
       continue;
     }
+    
     let or3 = orDet([points[c], points[j], points[k]]);
     if (or3 === -1) {
       continue;
     }
-    let le = -1;
+    let le = -1; // left end
     if (visiblePoints.includes(j)) {
       le = j;
     }
@@ -543,11 +556,12 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
           le === -1 ||
           orDet([points[c], points[le], points[ll[m]]]) > 0
         ) {
+    	  // change the most right point hiding left end of the edge
           le = ll[m];
         }
       }
     }
-    let re = -1;
+    let re = -1; // right end
     if (visiblePoints.includes(k)) {
       re = k;
     }
@@ -568,11 +582,11 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
       let p = (c + points.length - 1) % points.length;
 
       if (rr[m] !== j) {
-        //} && rr[m] !== p) {
         if (
           re === -1 ||
           orDet([points[c], points[re], points[rr[m]]]) < 0
         ) {
+  		  // change the most left point hiding right end of the edge        
           re = rr[m];
         }
       }
@@ -602,6 +616,7 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
     if (le === -1 || re === -1) {
       continue;
     }
+    // find the intersections of the edge with the rays of hiding > < points
     if (le !== j) {
       le = findIntersection([points[c], points[le], points[j], points[k]]);
     } else {
@@ -624,6 +639,8 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
   return visiblePolygon;
 }
 
+// Computes the visibility polygon for the next switched on light,
+// remembers which lights are on
 function show_visibility(){
 	if (nextLightToShow === lightings.length){
 		visibilitiesComputed = true;
@@ -643,7 +660,7 @@ function show_visibility(){
 	let visiblePoints = pointVisibility(light_idx, savedCoords);
 	let lR = sortVisibleVertices(light_idx, savedCoords);
 	let ev = edgeVisibility(light_idx, savedCoords, visiblePoints[0], visiblePoints[1], lR[0], lR[1]);
-    visibilityArea.push(ev);
+    visibilityArea.push(ev); // visibility polygons for the next light
 	draw()
 	
 	nextLightToShow += 1
@@ -702,7 +719,7 @@ function draw(){
 		ctx.lineTo(coords[0].x, coords[0].y)
 		ctx.stroke();
 	}
-	
+	// Clean up the visibility polygons from the previous run
 	if (nextLightToShow === 0){
 		ctx.strokeStyle = '#000000'
 		ctx.fillStyle = '#FFFFFF';
@@ -714,6 +731,7 @@ function draw(){
 		ctx.stroke();
 		ctx.fill();
 	}
+	// Show visibility polygons
 	for (let i = 0; i < nextLightToShow; i++) {
 		ctx.fillStyle = '#FFFF99';
 		e = visibilityArea[i];

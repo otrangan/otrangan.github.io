@@ -21,6 +21,7 @@
 <p>
   In order to have an applied demonstration of this calculation we have also created an application using the languages <b>HTML</b> and <b>Javascript</b>.
   This application allows the user to draw a polygon by clicking on the points that they want to use as vertices and then finds a possible solution by using Fisk's proof.
+  Afterwards the user can see how the next lights from the Fisk's solution are lightening the polygon.
 </p>
 <p>
   In order to design the polygon that they wish to test, the user must click on the points where the vertices of the polygon will be on the canvas in a counter-clockwise direction.
@@ -58,6 +59,40 @@
   If the user wishes they can select one of these solutions and it'll be recreated on the canvas.
   This is done by using the localstorage function of <b>Javascript</b>.
 </p>
+<h3>1.1.3 Lighting</h3>
+<p>
+  The user can click the <b>Light up</b> button to switch on the lights from Fisk's solution one by one.
+  For each edge of the polygon the algorithm checks how much it is visible from the light source.
+  It intersects all vertices with that one edge to find which subsegment of the edge is visible.
+</p>
+<p>  
+  It is important to prove that there is always exactly one (sometimes with length 0) subsection of the edge visible from the vertex light.
+  Otherwise let's assume we have two subsections and there is another subsection of the edge between them which is invisible. It means that the ends of this
+  invisible segment are hidden by another edge or vertex. But this hiding object must stay in the invisible triangle and also must be connected with the rest of the polygon perimeter.
+  So it has to go into the visible area which is contradictory to the fact of having that two subsegments visible.
+</p>
+<p>  
+  Having this fact, for each edge we can check how other edges and vertices interfere the light for this edge.
+  There are a few possibilites:
+  <ul>
+  <li>both ends of the edge are visible - then the whole edge is visible,</li>
+  <li>both ends are invisible and hidden by the same edge - then the whole edge is invisible,</li>
+  <li>one end is visible or both ends are invisible but due to different hiding objects - then we have to compute precisely the visible subsegment.</li>
+  </ul>
+</p>
+<p>  
+  If we imagine this visible subsegment from one side it either touches the end of the edge or hooks on the other vertex (or on the whole edge which is equal to hooking on both ends of that edge).
+  So we can just check each vertex:
+  <ul>
+  <li>if it is visible from the light (otherwise it can't be a hook),</li>
+  <li>if it makes acute angle with neighbouring vertices,</li>
+  <li>in which direction it can be hooking the edge (> shortens the visibility from the left end of the edge or < from the right).</li>
+  </ul>
+  Then we take two 'biggest' hooks and compute the intersections of the edge with the rays of light hooking on them.
+</p>
+Please take a look at the example and how the upper edge is limited by different hooks > <.
+<img src="images/visibility.png" alt="Ligthing" width="300" />
+
 <h1 style="text-align:center">2 Definitions</h1>
 <p>
   In this part, we introduce some definitions which have been or will be used in this project.
@@ -194,7 +229,7 @@
 <p>
   In this stage, we add a new path between pairs (v<sub>17</sub>, v<sub>1</sub>).
 </p>
-<img src="images/stage4.png" alt="Image removed" width="400" />
+<img src="images/stage4.png" alt="Image removed" width="400" /><img src="images/stage4.png" alt="Image removed" width="400" />
 <p>
   We find that the geodesic paths connect pairs of vertices are only one vertex apart. We stop the algorithm and get the balanced geodesic triangulation of P.
 </p>
