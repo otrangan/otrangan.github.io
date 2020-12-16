@@ -367,7 +367,7 @@ function color(){
 	for(var i=0;i<savedCoords.length;i++){
 		corrected.push(false);
 	}
-	//After making sure every vertice has only one color we check one last time if the vertices of the triangle have the same color
+	//After making sure every vertice has only one color we check one last time that the vertices of the triangle have different colors
 	for(var tri = triangles.length-1; tri > -1; tri--){
 		var col = [whichcolor(triangles[tri][0]), whichcolor(triangles[tri][1]), whichcolor(triangles[tri][2])];
 		for(var i = 0; i < 3;i++){
