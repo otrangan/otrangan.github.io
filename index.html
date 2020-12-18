@@ -6,6 +6,8 @@
 <body>
 <div style="max-width: 700">
 <h1 style="text-align:center">1 Introduction</h1>
+<p> Our project about Floodlight Illumination Problem consists of two parts. </p> 
+<h2>1.1 The interactive tutorial [Jiang Han]</h2>
 <p>
   In this project, we design an interactive tutorial to study the upper bound of illuminating a simple polygon with n vertices, k of which are convex, using edge-aligned vertex pi-floodlight.
 </p>
@@ -14,12 +16,11 @@
 </p>
 <p>
   In contrast, our allocation of guards is based on a decomposition of a simple polygon into pseudo-triangles—planar polygons with exactly three convex vertices 
-  <a name="ref1">[1]</a>.
-  <a href = "Applet.html">Applet</a>
-</p>
-<h2>1.1 Apllication [Tranganidas Orestis]</h2>
+  <a name="ref1">[1]</a>.</p>
+<p> The tutorial starts in the next paragraph - <a href="#The interactive tutorial">here</a></h1>.</p>
+<h2>1.2 The interactive application [Tranganidas Orestis] </h2>
 <p>
-  In order to have an applied demonstration of this calculation we have also created an application using the languages <b>HTML</b> and <b>Javascript</b>.
+  In order to have an applied demonstration of this calculation we have also created   <a href = "Applet.html">an application</a> using the languages <b>HTML</b> and <b>Javascript</b>.
   This application allows the user to draw a polygon by clicking on the points that they want to use as vertices and then finds a possible solution by using Fisk's proof.
   Afterwards the user can see how the next lights from the Fisk's solution are lightening the polygon.
 </p>
@@ -27,7 +28,7 @@
   In order to design the polygon that they wish to test, the user must click on the points where the vertices of the polygon will be on the canvas in a counter-clockwise direction.
   Before starting the triangulation the application makes sure that the given polygon is simple.
 </p>
-<h3>1.1.1 Finding Floodlights</h3>
+<h3>1.2.1 Finding Floodlights</h3>
 <p>
   To find a possible solution, the application uses the theory behind Fisk's proof which is:
 </p>
@@ -40,7 +41,7 @@
 <p>
   (3)Select the color with the least amount of vertices as the solution of the polygon.
 </p>
-<h3>1.1.2 Triangulation</h3>
+<h3>1.2.2 Triangulation</h3>
 <p>
   The polygon triangulation is performed by using the <b>Ear clipping</b> method:
 </p>
@@ -53,13 +54,13 @@
 <p>
   (3)Repeat this process until there is only one triangle remaining.
 </p>
-<h3>1.1.3 Leaderboard</h3>
+<h3>1.2.3 Leaderboard</h3>
 <p>
   The application is also able to save previous solutions and show them in a vertical list on the right side of the app.
   If the user wishes they can select one of these solutions and it'll be recreated on the canvas.
   This is done by using the localstorage function of <b>Javascript</b>.
 </p>
-<h2>1.2 Lighting [Dudek Agnieszka]</h2>
+<h3>1.2.4 Lighting [Dudek Agnieszka]</h3>
 <p>
   The user can click the <b>Light up</b> button to switch on the lights from Fisk's solution one by one.</p>
 <p> For the application there is an algorithm which, for each edge of the polygon, checks how much it is visible from the light source.
@@ -67,7 +68,10 @@
   <p> The whole analysis and implementation details of this visibility polygon problem is <a href="lighting.html">here</a>. <br>
   The implementation of the linear algorithm by Joe and Simpson from 1985 is <a href="linear_lights_code.html">here</a>.</p>
   
-<h1 style="text-align:center">2 Definitions [Jiang Han]</h1>
+<a id="The interactive tutorial"></a>
+<h1 style="text-align:center">The interactive tutorial</h1>
+
+<h1 style="text-align:center">2 Definitions</h1>
 <p>
   In this part, we introduce some definitions which have been or will be used in this project.
 </p>
