@@ -1,0 +1,141 @@
+<!doctype html>
+
+<html lang="en", >
+<head>
+  <meta charset="utf-8">
+
+  <title>Analysis and implementation of the vertex visibility polygon problem </title>
+  <meta name="description" content="Vertex visibility polygon">
+  <meta name="author" content="Agnieszka Dudek">
+
+  <link rel="stylesheet" href="css/styles.css?v=1.0">
+
+</head>
+
+
+<body>
+<div style="max-width: 700">
+  
+<h1 style="text-align:center">Analysis and implementation 
+of the vertex visibility polygon problem</h1>  
+
+<h2>Table of content</h2>
+<ul><li>Introduction</li>
+<li>Problem</li>
+<li>Greedy solution</li>
+<li>My solution</li>
+<ul><li>Proof by contradiction</li>
+<li>Computing the visible subsegment</li>
+<li>Example</li>
+<li>Getting the visibility polygon</li></ul>
+<li>Joe and Simpson 1985 algorithm</li>
+<ul><li>Main Idea</li>
+<li>Implementation issue with angles</li>
+<li>Examples</li>
+<li>Failing test</li>
+<li>My failing test</li>
+<li>The author’s counter-test</li></ul>
+<li>Final thoughts</li>
+<li>Code and report</li>
+<li>References</li></ul>
+
+<h2>Introduction</h2>
+<p>The problem has arised from the art gallery problem in which we want to find the minimal number of guards needed to place into the gallery to keep an eye on the whole object.</p>
+<p>Transforming it into geometry we choose the vertices (guards) which can see some area like the light going into every corner (sends rays) until it hits the wall.</p>
+<p>In the vertex visibility problem we find this lightened area for one point (guard/light source) of the initial polygon. For the output we get the visibility polygon.</p>
+
+<h2>Problem</h2>
+<ul><li><b>Input data:</b> Polygon without intersections and holes, Selected vertex L (a light source)</li>
+<li><b>Output data:</b> Visibility polygon</li></ul>
+
+<h2>Greedy solution</h2>
+
+<p>The first idea I had to solve the problem is to divide the perimeter of the polygon into pixels and for each pixel check if it is visible from the light source L.
+This finds us all rays from the light and actually ‘draws’ the output.</p>
+
+<p>Checking if the pixel p is visible means finding the intersections between (L, p) and (e1, e2) for all edges e \in E besides the one on which p lies. If none of the edges crosses the segment (L, p), then the p is visible, otherwise it is not.
+Afterwards I can draw the whole area by connecting the collinear dots on the edges with the light source. I will get many triangles which together make a whole visibility polygon.</p>
+
+<p>The intersections I check using the cross product. To make the implementation simpler I would divide the crossings into two types:
+(at least) one end of the edge is on the segment (L, p),
+two ends lie on two sides of the segment (L, p), none of them touches the segment.</p>
+
+<p>But this solution is very slow - it requires dividing the perimeter into single pixels!</p>
+<img src="images/greedy.png" alt="Greedy" width="200"/>
+
+<h2>My solution</h2>
+<p>I decided to implement a different solution. For each edge of the polygon as the whole, the algorithm checks how much it is visible from the light source. It intersects all vertices with that one edge to find which subsegment of the edge is visible.</p>
+<p>It is important to prove that there is always exactly one (sometimes with length 0) subsection of the edge visible from the vertex light. </p>
+<h3>Proof by contradiction</h3>
+<p>Let's assume we have two visible subsections of the edge (a,d): (a,b) and (c,d) and there is an invisible subsection (b,c) between them (the edge could be longer in both directions but it doesn’t change the proof). </p>
+<p>It means that (b,c) is hidden by some parts of the polygon’s perimeter inside the triangle (L, b, c). But they have to be connected with the rest of the perimeter! Especially with the edge (a,d). 
+But to connect them together the parts from the triangle must enter the yellow triangles - but then the subsections (a,b) and (c,d) will not be fully visible - contradiction.</p>
+<p>Having this fact, for each edge we can check how other edges and vertices interfere with the light for this edge. There are a few possibilities:
+<ul><li>both ends of the edge are visible - then the whole edge is visible,</li>
+<li>both ends are invisible and hidden by the same edge - then the whole edge is invisible,</li>
+<li>one end is visible or both ends are invisible but due to different hiding objects - then we have to compute precisely the visible subsegment.</li></ul>
+<h3>Computing the visible subsegment</h3>
+<p>Take the edge and check which vertices restrict the edge’s visibility from both sides. So we can just check each vertex:
+<ul><li>if it is visible from the light (otherwise it can't be a hook),
+<li>if it makes acute angle with neighbouring vertices,
+<li>in which direction it can be hooking the edge (&gt; shortens the visibility from the left end of the edge or &lt; from the right).</li></ul></p>
+
+<p>Then choose two biggest restrictors and compute the intersections with the light rays going through them. Please take a look at the example and how the left upper edge is limited by different acute angles &gt; &lt; created by vertices.</p>
+
+<h3>Example</h3>
+<p>Please take a look at the example of how the upper edge is limited by different vertices from both sides.</p>
+<img src="images/my_solution.png" alt="My solution" width="200"/>
+<h3>Getting the visibility polygon</h3>
+<p>We repeat this procedure for all edges separately and then we create the visibility polygon by taking all ends of visible segments of edges in the initial polygon’s order of edges.</p>
+
+<h2>Joe and Simpson 1985 algorithm</h2>
+<p>The first linear algorithm for the visibility problem was presented by ElGindy and Avis in 1980, but it was quite complicated with many cases and 3 stacks to juggle vertices between. Afterwards D.T. Lee improved that solution and again in 1985 Joe and Simpson simplified it even more. </p>
+<p>However, in 1987 the last authors found the test case for which their algorithm and all above don’t work and they wrote the correction of the algorithm which solves it. </p>
+
+<p>I have implemented the last version based on Joe and Simpson’s work from 1985 explained in <i>Art Gallery Theorems and Algorithms</i> by Joseph O'Rourke. Afterwards I also found the test case for which it doesn’t work and tried to solve it on my own but I couldn’t finish it. Therefore I left my implementation of my individual solution for our application and put this linear algorithm as the appendix. It is written in python and I attach it in this form as it is not added to our application. I have chosen python for the draft version, because it easier to experiment with the code and divide it into the chunks what helped me to implement this paper’s work.</p>
+<h3>Main Idea</h3>
+<p>We analyze all vertices of the polygon’s perimeter one by one. Looking at the next vertex we keep the stack of visible vertices until now without any predictions about the next boundaries. We have 3 different moves:
+<ul><li>push - add the vertex on the stack if it is visible at that point,</li>
+<li>pop - remove some vertices from the top of the stack until they are covered by our current vertex,</li>
+<li>wait - proceed to the next vertices until they are covered by the top of the stack.</li></ul>
+
+<p>We decide about the next move regarding the angles between vertices, orientation of the next boundaries and the intersections between the current/last point (light ray) and processed edges.</p>
+
+<p>Finally the visibility polygon consists of the vertices from the stack.</p>
+
+<h3>Implementation issue with angles</h3>
+<p>In the book it is said that the we count polar angle of vi with respect to x from the definition:</p>
+<img src="images/alphas.png" alt="Polar angle definition" width="400"/>
+<p>where σ is the orientation determinant of x, vi-1 and vi, I had concerns how to measure this angle - how to treat negative values and how to respect the concave angles.
+Finally, I computed the angle from the difference of atan2 functions, I increased the values lower than 0 and always take a convex angle between the points.</p>
+<h3>Examples</h3>
+<p><b>Key:</b> blue - polygon, green - visibility area, orange - light</p>
+<img src="images/stars.png" alt="Example with star-shaped polygon" width="400"/>
+<img src="images/roses.png" alt="Example with rose-shaped polygon" width="400"/>
+
+<h3>Failing test</h3>
+<p>During some tests I found a case where my implementation doesn’t work. I tried to fix it and understand how it should work in the algorithm, but I couldn’t. Then I realized there is a correction to the algorithm from 1987. I checked that the author’s counter-test also fails and I think it is due to the similar reason of ‘too much winding’. </p>
+<h4>My failing test</h4>
+<p><b>Key:</b> blue - polygon, red - polygon vertices, green - visibility area, purple - temporary visible vertices added to the stack.</p>
+<img src="images/wrong1.png" alt="Failing example 1" width="400"/>
+<h4>The author’s counter-test</h4>
+<img src="images/wrong2.png" alt="Failing example 2" width="400"/>
+
+<h2>Final thoughts</h2>
+<p>I have implemented two different algorithms of finding the visibility polygon. Now this work can be used for the art gallery problem as it helps to analyze if the subset of chosen vertices is enough to lighten the whole area. This requires additional merging of separate visibility polygons.</p>
+
+<h2>Code and report</h2>
+<p>At the end I attach the link to my implementation <a href = "linear_lights_code.html">here</a>. I also generated this report in <a href="lighting.pdf">pdf</a>.</p>
+
+
+<h2>References</h2>
+<ul><li><i>Art Gallery Theorems and Algorithms</i> by Joseph O'Rourke</li>
+<li>B. Joe and R. B. Simpson: <i>Visibility of a simple polygon from a point</i>, Technical Report CS-85-38. Dept. of Computer Science, Univ. of Waterloo, (1985).</li>
+<li><i>Corrections to Lee's visibility polygon algorithm</i> by B. Joe & R. B. Simpson,
+BIT Numerical Mathematics volume 27, pages 458–473(1987)</li></ul>
+
+<h2>Go back to our <a href="index.html">home</a> page.</h2> 
+</body>
+</html>
+
+

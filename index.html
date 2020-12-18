@@ -61,38 +61,12 @@
 </p>
 <h2>1.2 Lighting [Dudek Agnieszka]</h2>
 <p>
-  The user can click the <b>Light up</b> button to switch on the lights from Fisk's solution one by one.
-  For each edge of the polygon the algorithm checks how much it is visible from the light source.
-  It intersects all vertices with that one edge to find which subsegment of the edge is visible.
-</p>
-<p>  
-  It is important to prove that there is always exactly one (sometimes with length 0) subsection of the edge visible from the vertex light.
-  Otherwise let's assume we have two subsections and there is another subsection of the edge between them which is invisible. It means that the ends of this
-  invisible segment are hidden by another edge or vertex. But this hiding object must stay in the invisible triangle and also must be connected with the rest of the polygon perimeter.
-  So it has to go into the visible area which is contradictory to the fact of having that two subsegments visible.
-</p>
-<p>  
-  Having this fact, for each edge we can check how other edges and vertices interfere the light for this edge.
-  There are a few possibilites:
-  <ul>
-  <li>both ends of the edge are visible - then the whole edge is visible,</li>
-  <li>both ends are invisible and hidden by the same edge - then the whole edge is invisible,</li>
-  <li>one end is visible or both ends are invisible but due to different hiding objects - then we have to compute precisely the visible subsegment.</li>
-  </ul>
-</p>
-<p>  
-  If we imagine this visible subsegment from one side it either touches the end of the edge or hooks on the other vertex (or on the whole edge which is equal to hooking on both ends of that edge).
-  So we can just check each vertex:
-  <ul>
-  <li>if it is visible from the light (otherwise it can't be a hook),</li>
-  <li>if it makes acute angle with neighbouring vertices,</li>
-  <li>in which direction it can be hooking the edge (> shortens the visibility from the left end of the edge or < from the right).</li>
-  </ul>
-  Then we take two 'biggest' hooks and compute the intersections of the edge with the rays of light hooking on them.
-</p>
-Please take a look at the example and how the upper edge is limited by different hooks > <.
-<img src="images/visibility.png" alt="Ligthing" width="300" />
-
+  The user can click the <b>Light up</b> button to switch on the lights from Fisk's solution one by one.</p>
+<p> For the application there is an algorithm which, for each edge of the polygon, checks how much it is visible from the light source.
+  It intersects all vertices with that one edge to find which subsegment of the edge is visible. </p>  
+  <p> The whole analysis and implementation details of this visibility polygon problem is <a href="lighting.html">here</a>. <br>
+  The implementation of the linear algorithm by Joe and Simpson from 1985 is <a href="linear_lights_code.html">here</a>.</p>
+  
 <h1 style="text-align:center">2 Definitions [Jiang Han]</h1>
 <p>
   In this part, we introduce some definitions which have been or will be used in this project.
