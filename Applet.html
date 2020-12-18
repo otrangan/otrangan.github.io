@@ -797,38 +797,6 @@ function draw(){
 		ctx.lineTo(coords[0].x, coords[0].y)
 		ctx.stroke();
 	}
-	if(triangles.length>0){
-		for(var tri = 0;tri < triangles.length;tri++){
-			ctx.beginPath();
-			ctx.strokeStyle = '#000000';
-			ctx.strokeWidth = 1;
-			ctx.moveTo(triangles[tri][0].x, triangles[tri][0].y);
-			for(var i=1; i< 3; i++){
-				ctx.lineTo(triangles[tri][i].x, triangles[tri][i].y);
-			}
-			ctx.lineTo(triangles[tri][0].x, triangles[tri][0].y)
-			ctx.stroke();
-		}
-	}
-	for(var tri = 0;tri < 3;tri++){
-		ctx.beginPath();
-		for(var i=0; i < colors[tri].length; i++){
-			ctx.beginPath();
-			ctx.arc(colors[tri][i].x, colors[tri][i].y, 3, 0, 2 * Math.PI);
-			switch(tri){
-				case 0:
-					ctx.fillStyle = '#ff0000';
-					break;
-				case 1:
-					ctx.fillStyle = '#e0ff00';
-					break;
-				case 2:
-					ctx.fillStyle = '#00f3ff';
-					break;
-			}
-			ctx.fill();
-		}
-	}
 	if (lightToShow >= 0 && visibilityArea.length > lightToShow){
 		// Show visibility polygons
 		ctx.fillStyle = '#FFFF99';
