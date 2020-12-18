@@ -79,6 +79,7 @@ var coords = []; //List of the coordinates chosen by the user
 var savedCoords = []; //Saved original coordinates for the Leaderboard
 var lightings = []; //List of the floodlight positions
 var nextLightToShow = -2;
+var lightToShow = -2;
 var visibilitiesComputed = false;
 var visibilityArea = [];
 var triangles = [];//List with the triangles created from the polygon
@@ -132,7 +133,7 @@ function calculate() {
 			draw();
 			fisk();
 			draw();
-			nextLightToShow = 0;
+			lightToShow = 0;
 		}else {
 			//if the polygon is not simple we can't calculate
 			console.log("Polygon is not simple");
@@ -708,28 +709,28 @@ function edgeVisibility(c, points, visiblePoints, hidings, ll, rr) {
 // Computes the visibility polygon for the next switched on light,
 // remembers which lights are on
 function show_visibility(){
-	if (nextLightToShow === lightings.length){
+	if (lightToShow === lightings.length){
 		visibilitiesComputed = true;
+		lightToShow = 0;
 		draw();
-		nextLightToShow = 0;
 		return;
 	}
-	if (nextLightToShow === -2){
+	if (lightToShow === -2){
 		return;
 	}
 	if (visibilitiesComputed === true){
 		draw()
-		nextLightToShow = (nextLightToShow + 1) % (lightings.length + 1);
+		lightToShow = (lightToShow + 1) % (lightings.length);
 		return;
 	}
-	light_idx = closestVertex(lightings[nextLightToShow], savedCoords);
+	light_idx = closestVertex(lightings[lightToShow], savedCoords);
 	let visiblePoints = pointVisibility(light_idx, savedCoords);
 	let lR = sortVisibleVertices(light_idx, savedCoords);
 	let ev = edgeVisibility(light_idx, savedCoords, visiblePoints[0], visiblePoints[1], lR[0], lR[1]);
     visibilityArea.push(ev); // visibility polygons for the next light
 	draw()
-	
-	nextLightToShow += 1
+
+	lightToShow += 1
 }
 
 //Creates a new point using the coordinates of where the user clicked and adds it to the polygon
@@ -753,7 +754,7 @@ function reset() {
 	coords = [];
 	savedCoords = [];
 	lightings = [];
-	nextLightToShow = -2;
+	lightToShow = -2;
 	visibilitiesComputed = false;
 	visibilityArea = [];
 	triangles = [];
@@ -765,6 +766,18 @@ function reset() {
 function draw(){
 	var c = document.getElementById("myCanvas");
 	var ctx = c.getContext("2d");
+	// Clean up the visibility polygons from the previous run
+	if (savedCoords.length > 0){
+		ctx.strokeStyle = '#000000'
+		ctx.fillStyle = '#FFFFFF';
+		ctx.moveTo(savedCoords[0].x, savedCoords[0].y);
+		for (let i = 1; i < savedCoords.length; i++) {
+			ctx.lineTo(savedCoords[i].x, savedCoords[i].y);
+		}
+		ctx.lineTo(savedCoords[0].x, savedCoords[0].y);
+		ctx.stroke();
+		ctx.fill();
+	}
 	//Draw the polygon
 	if(coords.length>0){
 		ctx.clearRect(0, 0, c.width, c.height);
@@ -816,32 +829,18 @@ function draw(){
 			ctx.fill();
 		}
 	}
-	// Clean up the visibility polygons from the previous run
-	if (nextLightToShow === 0){
-		ctx.strokeStyle = '#000000'
-		ctx.fillStyle = '#FFFFFF';
-		ctx.moveTo(savedCoords[0].x, savedCoords[0].y);
-		for (let i = 1; i < savedCoords.length; i++) {
-			ctx.lineTo(savedCoords[i].x, savedCoords[i].y);
-		}
-		ctx.lineTo(savedCoords[0].x, savedCoords[0].y);
-		ctx.stroke();
-		ctx.fill();
-	}
-	// Show visibility polygons
-	for (let i = 0; i < nextLightToShow; i++) {
+	if (lightToShow >= 0 && visibilityArea.length > lightToShow){
+		// Show visibility polygons
 		ctx.fillStyle = '#FFFF99';
-		e = visibilityArea[i];
+		e = visibilityArea[lightToShow];
 		ctx.moveTo(e[0].x, e[0].y);
 		for (let j = 1; j < e.length; j++) {
 			ctx.lineTo(e[j].x, e[j].y);
 		}
 		ctx.lineTo(e[0].x, e[0].y);
 		ctx.fill();
-	}
-	for (let i = 0; i < nextLightToShow; i++) {
 		ctx.strokeStyle = '#000000';
-		e = visibilityArea[i];
+		e = visibilityArea[lightToShow];
 		ctx.moveTo(e[0].x, e[0].y);
 		for (let j = 1; j < e.length; j++) {
 			ctx.lineTo(e[j].x, e[j].y);
@@ -856,7 +855,7 @@ function draw(){
 		ctx.beginPath();
 		ctx.arc(lightings[i].x, lightings[i].y, 5, 0, 2 * Math.PI);
 		ctx.fillStyle = '#000000';
-		if (i < nextLightToShow){
+		if (i == lightToShow){
 			ctx.fillStyle = '#FF9900';
 		}
 		ctx.fill();
