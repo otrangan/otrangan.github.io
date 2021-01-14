@@ -401,7 +401,6 @@ function color(){
 		corrected[savedCoords.indexOf(triangles[tri][1])] = true;
 		corrected[savedCoords.indexOf(triangles[tri][2])] = true;
 	}
-	console.log(corrected);
 }
 
 //Returns if the line segments created four points intersect
@@ -841,14 +840,10 @@ list.addEventListener('click', function(ev) {
   if (ev.target.tagName === 'LI') {
     reset();
     var memory = window.localStorage.getItem(ev.target.childNodes[0].nodeValue);
-    console.log(memory);
     var vertices = memory.split("|")[0];
     var floodLights = memory.split("|")[1];
     var vertices = vertices.split(" ");
     var floodLights = floodLights.split(" ");
-    console.log(coords);
-    console.log(savedCoords);
-    console.log(lightings);
     for( i in vertices){
     	coords.push(new Point(parseInt(vertices[i].split(",")[0]),parseInt(vertices[i].split(",")[1])));
     	savedCoords.push(new Point(parseInt(vertices[i].split(",")[0]),parseInt(vertices[i].split(",")[1])));
@@ -856,9 +851,6 @@ list.addEventListener('click', function(ev) {
     for( j in floodLights){
     	lightings.push(new Point(parseInt(floodLights[j].split(",")[0]),parseInt(floodLights[j].split(",")[1])));
     }
-    console.log(coords);
-    console.log(savedCoords);
-    console.log(lightings);
     draw();
   }
 }, false);
