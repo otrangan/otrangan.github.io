@@ -149,7 +149,6 @@ function fisk(){
 	}
 	triangulatePolygon();
 	color();
-	console.log(colors[0].length,colors[1].length,colors[2].length)
 	//Find the which color contains the least amount of vertices
 	var lightIndex = -1;
 	var leastcolors = savedCoords.length;
@@ -719,7 +718,7 @@ function show_visibility(){
 		return;
 	}
 	if (visibilitiesComputed === true){
-		draw()
+		draw();
 		lightToShow = (lightToShow + 1) % (lightings.length);
 		return;
 	}
@@ -728,9 +727,9 @@ function show_visibility(){
 	let lR = sortVisibleVertices(light_idx, savedCoords);
 	let ev = edgeVisibility(light_idx, savedCoords, visiblePoints[0], visiblePoints[1], lR[0], lR[1]);
     visibilityArea.push(ev); // visibility polygons for the next light
-	draw()
+	draw();
 
-	lightToShow += 1
+	lightToShow += 1;
 }
 
 //Creates a new point using the coordinates of where the user clicked and adds it to the polygon
@@ -767,11 +766,11 @@ function draw(){
 	var c = document.getElementById("myCanvas");
 	var ctx = c.getContext("2d");
 	// Clean up the visibility polygons from the previous run
-	if (savedCoords.length > 0){
-		ctx.strokeStyle = '#000000'
+	if (savedCoords.length > 2){
+		ctx.strokeStyle = '#000000';
 		ctx.fillStyle = '#FFFFFF';
 		ctx.moveTo(savedCoords[0].x, savedCoords[0].y);
-		for (let i = 1; i < savedCoords.length; i++) {
+		for (var i = 1; i < savedCoords.length; i++) {
 			ctx.lineTo(savedCoords[i].x, savedCoords[i].y);
 		}
 		ctx.lineTo(savedCoords[0].x, savedCoords[0].y);
@@ -779,7 +778,7 @@ function draw(){
 		ctx.fill();
 	}
 	//Draw the polygon
-	if(coords.length>0){
+	if(coords.length > 2){
 		ctx.clearRect(0, 0, c.width, c.height);
 		for( var i = 0; i< coords.length; i++){
 			ctx.beginPath();
@@ -794,11 +793,12 @@ function draw(){
 		for(var i=1; i< coords.length; i++){
 			ctx.lineTo(coords[i].x, coords[i].y);
 		}
-		ctx.lineTo(coords[0].x, coords[0].y)
+		ctx.lineTo(coords[0].x, coords[0].y);
 		ctx.stroke();
 	}
 	if (lightToShow >= 0 && visibilityArea.length > lightToShow){
 		// Show visibility polygons
+		ctx.beginPath();
 		ctx.fillStyle = '#FFFF99';
 		e = visibilityArea[lightToShow];
 		ctx.moveTo(e[0].x, e[0].y);
@@ -834,7 +834,7 @@ function draw(){
 //If the user clicks on a input of the leaderboard we recreate the correponding polygon
 var list = document.querySelector('ul');
 list.addEventListener('click', function(ev) {
-  if (ev.target.tagName === 'LI') {
+  if (ev.target.tagName === 'li') {
     reset();
     var memory = window.localStorage.getItem(ev.target.childNodes[0].nodeValue);
     var vertices = memory.split("|")[0];
