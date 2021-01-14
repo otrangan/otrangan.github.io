@@ -71,6 +71,10 @@ function Point(x, y) {
 	this.y = y;
 }
 
+Point.prototype.toString = function pointToString(){
+	return this.x.toString()+","+this.y.toString();
+}
+
 function subPoints(a, b){
     return new Point(a.x - b.x, a.y - b.y);
 }
@@ -834,13 +838,17 @@ function draw(){
 //If the user clicks on a input of the leaderboard we recreate the correponding polygon
 var list = document.querySelector('ul');
 list.addEventListener('click', function(ev) {
-  if (ev.target.tagName === 'li') {
+  if (ev.target.tagName === 'LI') {
     reset();
     var memory = window.localStorage.getItem(ev.target.childNodes[0].nodeValue);
+    console.log(memory);
     var vertices = memory.split("|")[0];
     var floodLights = memory.split("|")[1];
     var vertices = vertices.split(" ");
     var floodLights = floodLights.split(" ");
+    console.log(coords);
+    console.log(savedCoords);
+    console.log(lightings);
     for( i in vertices){
     	coords.push(new Point(parseInt(vertices[i].split(",")[0]),parseInt(vertices[i].split(",")[1])));
     	savedCoords.push(new Point(parseInt(vertices[i].split(",")[0]),parseInt(vertices[i].split(",")[1])));
@@ -848,6 +856,9 @@ list.addEventListener('click', function(ev) {
     for( j in floodLights){
     	lightings.push(new Point(parseInt(floodLights[j].split(",")[0]),parseInt(floodLights[j].split(",")[1])));
     }
+    console.log(coords);
+    console.log(savedCoords);
+    console.log(lightings);
     draw();
   }
 }, false);
